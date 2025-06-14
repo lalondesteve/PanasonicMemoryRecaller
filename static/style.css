@@ -1,0 +1,14 @@
+.cards {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  gap: 12px
+}
+
+.card {
+  border: solid var(--primary) 1px
+}
+
+.card>#last-message {
+  color: var(--tertiary);
+}

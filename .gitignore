@@ -6,7 +6,7 @@ node_modules
 # Quasar core related directories
 .quasar
 /dist
-/quasar.config.*.temporary.compiled*
+  /quasar.config.*.temporary.compiled*
 
 # Cordova related directories and files
 /src-cordova/node_modules
@@ -96,6 +96,7 @@ cover/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+*.sqlite3*
 
 # Flask stuff:
 instance/
