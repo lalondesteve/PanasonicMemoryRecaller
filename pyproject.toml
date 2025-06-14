@@ -8,6 +8,10 @@ dependencies = [
     "htpy>=25.6.2",
     "jinja2>=3.1.6",
     "sanic[ext]>=25.3.0",
-    "tortoise>=0.1.1",
     "tortoise-orm>=0.25.1",
 ]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+

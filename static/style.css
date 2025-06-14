@@ -1,14 +1,39 @@
-.cards {
-  display: flex;
-  flex-flow: row wrap;
-  justify-content: center;
-  gap: 12px
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
+
+body {
+  font-family: "Noto Sans", sans-serif;
+  font-optical-sizing: auto;
 }
 
 .card {
-  border: solid var(--primary) 1px
+  border: solid var(--primary) 1px;
+  margin-top: 8px;
 }
 
-.card>#last-message {
+#last-message,
+#last-message>code {
+  margin-top: 8px;
+  padding-top: 4px;
+  padding-bottom: 4px;
   color: var(--tertiary);
+  background-color: var(--surface-variant);
+}
+
+.card>h3,
+.card>h5,
+.card>pre {
+  margin: 0;
+}
+
+#add-button {
+  width: 100%;
+  margin-top: 2em;
+}
+
+#cards,
+#edit {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  gap: 12px;
 }
