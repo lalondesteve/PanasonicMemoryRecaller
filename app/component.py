@@ -100,6 +100,7 @@ def get_script():
 
 def projector_card(projector) -> Renderable:
     _form = form(".row .flex", hx_post="/projector/recall")[
+        input(type="hidden", id="id", name="id", value=projector.id),
         div(".max .field .border .label")[
             select("#memory", name="memory")[(option[x] for x in range(1, 11))],
             label["select memory"],
