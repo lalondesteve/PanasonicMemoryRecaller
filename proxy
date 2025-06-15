@@ -1,0 +1,3 @@
+#!/bin/bash
+
+browser-sync start --cwd -w -p "localhost:8000"  -f "**/*"
