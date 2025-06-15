@@ -35,7 +35,7 @@ async def _send_command(
     command: bytes,
     reader: asyncio.StreamReader,
     writer: asyncio.StreamWriter,
-):
+) -> bytes:
     writer.write(command)
     await writer.drain()
     r = await reader.read(BUFFER_SIZE)
@@ -47,7 +47,7 @@ async def recall_memory(
     projector: PanasonicProjector,
     request: Request,
     retries: int = 0,
-):
+) -> None:
     message = _get_memory_message(memory)
     command = SEND_MESSAGE_PREAMBLE + message
     try:
@@ -93,7 +93,9 @@ async def recall_memory(
             raise e
 
 
-async def _connect(p: PanasonicProjector, port=DEFAULT_PORT):
+async def _connect(
+    p: PanasonicProjector, port: int = DEFAULT_PORT
+) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
     r = w = None
     try:
         fut = asyncio.open_connection(p.ip, DEFAULT_PORT)
