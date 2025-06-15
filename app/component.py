@@ -1,4 +1,6 @@
 from htpy import (
+    a,
+    i,
     article,
     h3,
     h5,
@@ -11,8 +13,6 @@ from htpy import (
     body,
     nav,
     header,
-    a,
-    i,
     main,
     pre,
     code,
@@ -40,6 +40,7 @@ def get_html(main: Renderable):
             script(type="module", src="static/beercss/beer.min.js"),
             script(type="module", src="static/beercss/material-dynamic-colors.min.js"),
             script(src="/static/htmx.min.js"),
+            script(src="/static/htmx-ext-ws.min.js"),
             link(rel="stylesheet", href="/static/style.css"),
         ],
         get_body(main),
@@ -55,25 +56,37 @@ def get_nav():
     return nav(".top .middle-align")[
         header()[h5["Panasonic Memory Recaller"]],
         header(".max .right-align .primary-text")[
-            a(href="/")[i(".primary-text .border .small-round .tiny-padding")["home"]],
-            a(href="/edit")[
-                i(".primary-text .border .small-round .tiny-padding")["widgets"]
+            a(href="/projectors/power-on")[
+                i(".primary-text .border .small-round .tiny-padding")["lightbulb"]
+            ],
+            a(href="/projectors/power-off")[
+                i(".primary-text .border .small-round .tiny-padding")["light_off"]
             ],
         ],
+        # header(".max .right-align .primary-text")[
+        #     a(href="/")[i(".primary-text .border .small-round .tiny-padding")["home"]],
+        #     a(href="/edit")[
+        #         i(".primary-text .border .small-round .tiny-padding")["widgets"]
+        #     ],
+        # ],
     ]
 
 
 def get_index():
-    return main(".responsive", hx_boost="true")[
-        div("#projector-component", hx_get="/projectors", hx_trigger="load")[
-            "loading projectors"
+    return main(
+        ".responsive",
+        hx_boost="true",
+    )[
+        div("#test", hx_ext="ws", hx_connect="/ws")[
+            div("#test-swap", hx_swap_oob="true")["swap me"], "This is a test"
         ],
+        div(
+            "#projector-component",
+            hx_get="/projectors",
+            hx_trigger="load",
+        )["loading projectors"],
         get_edit_section(),
     ]
-
-
-def get_edit():
-    return main(".responsive", hx_boost="true")[get_edit_section()]
 
 
 def get_edit_section():
@@ -89,8 +102,8 @@ def get_script():
                 """
                 function theme(color){ 
                 ui("theme", "#009fff");
-                ui("mode", "dark")
-                }
+                ui("mode", "dark");
+                };
                 window.addEventListener("DOMContentLoaded", ()=>theme());
                 """
             )

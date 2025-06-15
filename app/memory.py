@@ -42,6 +42,43 @@ async def _send_command(
     return r
 
 
+async def _connect_and_send(
+    projector: PanasonicProjector, message: bytes, request: Request
+):
+    command = SEND_MESSAGE_PREAMBLE + message
+    reader, writer = await asyncio.wait_for(
+        asyncio.open_connection(projector.ip, DEFAULT_PORT),
+        timeout=SOCKET_TIMEOUT,
+    )
+    response = await reader.read(BUFFER_SIZE)
+    if WELCOME_MESSAGE not in response:
+        projector.last_message = response.decode()
+        await projector.save()
+        await request.app.dispatch(
+            "ws.broadcast.message", context={"message": "last_message"}
+        )
+        raise ProjectorConnectionError(
+            f"{projector.name} connection error: Unexpected welcome message {response}"
+        )
+    else:
+        retries = 0
+        while retries <= MAX_RETRIES:
+            r = await _send_command(command, reader=reader, writer=writer)
+            projector.last_message = r.decode()
+            await projector.save()
+            await request.app.dispatch(
+                "ws.broadcast.message", context={"message": "last_message"}
+            )
+            if ERROR_BUSY in r:
+                await asyncio.sleep(RETRY_DELAY)
+            elif r[2:] == message:
+                break
+            else:
+                raise ProjectorCommandError(
+                    f"{projector.name} unexpected response : {r}"
+                )
+
+
 async def recall_memory(
     memory: int,
     projector: PanasonicProjector,
@@ -49,36 +86,11 @@ async def recall_memory(
     retries: int = 0,
 ) -> None:
     message = _get_memory_message(memory)
-    command = SEND_MESSAGE_PREAMBLE + message
     try:
-        reader, writer = await asyncio.wait_for(
-            asyncio.open_connection(projector.ip, DEFAULT_PORT),
-            timeout=SOCKET_TIMEOUT,
-        )
-        response = await reader.read(BUFFER_SIZE)
-        if WELCOME_MESSAGE not in response:
-            projector.last_message = response.decode()
-            await projector.save()
-            raise ProjectorConnectionError(
-                f"{projector.name} connection error: Unexpected welcome message {response}"
-            )
-        else:
-            retries = 0
-            while retries <= MAX_RETRIES:
-                r = await _send_command(command, reader=reader, writer=writer)
-                projector.last_message = r.decode()
-                await projector.save()
-                if ERROR_BUSY in r:
-                    await asyncio.sleep(RETRY_DELAY)
-                elif r[2:] == message:
-                    break
-                else:
-                    raise ProjectorCommandError(
-                        f"{projector.name} unexpected response : {r}"
-                    )
-
+        await _connect_and_send(projector=projector, message=message, request=request)
     except asyncio.TimeoutError as e:
         if retries <= MAX_RETRIES:
+            await asyncio.sleep(RETRY_DELAY)
             retries += 1
             await recall_memory(
                 memory, request=request, projector=projector, retries=retries
@@ -87,18 +99,26 @@ async def recall_memory(
             raise e
 
 
-async def _connect(
-    p: PanasonicProjector, port: int = DEFAULT_PORT
-) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-    r = w = None
+async def power_on(projector: PanasonicProjector, request: Request):
+    message = b"PON\r"
     try:
-        fut = asyncio.open_connection(p.ip, DEFAULT_PORT)
-        r, w = await asyncio.wait_for(fut, timeout=SOCKET_TIMEOUT)
-
+        await _connect_and_send(projector=projector, message=message, request=request)
     except asyncio.TimeoutError:
-        r = w = None
-        raise asyncio.TimeoutError
-    except OSError as e:
-        r = w = None
-        raise ProjectorConnectionError(f"OSError connecting to {p.name} : {e}")
-    return r, w
+        projector.last_message = "Projector might be offline"
+        await projector.save()
+        await request.app.dispatch(
+            "ws.broadcast.message", context={"message": projector.last_message}
+        )
+
+
+async def power_off(projector: PanasonicProjector, request: Request, retries: int = 0):
+    message = b"POF\r"
+    try:
+        await _connect_and_send(projector=projector, message=message, request=request)
+    except asyncio.TimeoutError as e:
+        if retries <= MAX_RETRIES:
+            await asyncio.sleep(RETRY_DELAY)
+            retries += 1
+            await power_off(projector, request=request, retries=retries)
+        else:
+            raise e
