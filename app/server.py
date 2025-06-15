@@ -10,18 +10,7 @@ from .component import (
 from htpy import div
 from .models import PanasonicProjector
 from tortoise import Tortoise
-from dataclasses import dataclass
-
-
-@dataclass
-class PJ:
-    id: int
-    ip: str
-    name: str
-    last_message: str = "No message yet"
-
-
-vp1 = PJ(id=1, ip="192.168.101.21", name="vp1")
+from .memory import recall_memory
 
 
 def create_app():
@@ -36,6 +25,10 @@ def create_app():
             db_url="sqlite://db/db.sqlite3", modules={"models": ["app.models"]}
         )
         await Tortoise.generate_schemas()
+
+    @app.signal("ws.update.last_message")
+    async def update_projector_message(context):
+        print(context)
 
     @app.get("/")
     async def index(_):
@@ -59,6 +52,17 @@ def create_app():
         return response.html(
             str(div("#cards")[(projector_card(projector) for projector in projectors)])
         )
+
+    @app.post("/projector/recall")
+    async def mem(request: Request):
+        data = request.form
+        if data:
+            projector = await PanasonicProjector.get(id=data.get("id"))
+            mem = int(data.get("memory"))
+            if mem and isinstance(mem, int):
+                await recall_memory(mem, projector=projector, request=request)
+
+        return response.HTTPResponse(status=204)
 
     @app.route("/projector-edit", methods=["get", "post", "delete"])
     async def projector_edit(request: Request):

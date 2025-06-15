@@ -59,9 +59,6 @@ async def recall_memory(
         if WELCOME_MESSAGE not in response:
             projector.last_message = response.decode()
             await projector.save()
-            await request.app.dispatch(
-                "ws.update.last_message", context={"projector_id": projector.id}
-            )
             raise ProjectorConnectionError(
                 f"{projector.name} connection error: Unexpected welcome message {response}"
             )
@@ -71,12 +68,9 @@ async def recall_memory(
                 r = await _send_command(command, reader=reader, writer=writer)
                 projector.last_message = r.decode()
                 await projector.save()
-                await request.app.dispatch(
-                    "ws.update.last_message", context={"projector_id": projector.id}
-                )
                 if ERROR_BUSY in r:
                     await asyncio.sleep(RETRY_DELAY)
-                elif r == message:
+                elif r[2:] == message:
                     break
                 else:
                     raise ProjectorCommandError(
