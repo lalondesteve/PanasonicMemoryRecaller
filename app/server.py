@@ -55,13 +55,20 @@ def create_app():
 
     @app.post("/projector/recall")
     async def mem(request: Request):
-        data = request.form
-        if data:
-            projector = await PanasonicProjector.get(id=data.get("id"))
-            mem = int(data.get("memory"))
-            if mem and isinstance(mem, int):
-                await recall_memory(mem, projector=projector, request=request)
+        if data := request.form:
+            _id = data.get("id")
+            mem = data.get("memory")
+            if _id and mem:
+                projector = await PanasonicProjector.get(id=data.get("id"))
+                await recall_memory(int(mem), projector=projector, request=request)
 
+        return response.HTTPResponse(status=204)
+
+    @app.get("/projectors/recall/<mem>")
+    async def recall_all(request: Request, mem: int):
+        projectors = await PanasonicProjector.all()
+        for projector in projectors:
+            await recall_memory(mem, projector=projector, request=request)
         return response.HTTPResponse(status=204)
 
     @app.route("/projector-edit", methods=["get", "post", "delete"])
